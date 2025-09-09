@@ -4,6 +4,7 @@ from typing import Optional, Any, Dict
 from pathlib import Path
 import zipfile
 import requests
+import asyncio
 
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,24 +37,25 @@ def _ensure_embeddings():
         return
     if not zip_url:
         print("[startup] ERROR: EMBEDDINGS_ZIP_URL not set AND embeddings not found.")
-        raise RuntimeError(
-            "Embeddings missing. Set EMBEDDINGS_ZIP_URL env var to your S3 ZIP."
-        )
+        # Don't crash the app; leave logs and let endpoints fail gracefully if needed
+        return
 
     APP_DIR.mkdir(parents=True, exist_ok=True)
     tmp_zip = Path("/tmp/embeddings_bundle.zip")
     print(f"[startup] Downloading embeddings from {zip_url} ...")
-    with requests.get(zip_url, stream=True, timeout=600) as r:
-        r.raise_for_status()
-        with open(tmp_zip, "wb") as f:
-            for chunk in r.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    f.write(chunk)
-    print("[startup] Unzipping embeddings ...")
-    with zipfile.ZipFile(tmp_zip, "r") as zf:
-        zf.extractall(APP_DIR)
-    tmp_zip.unlink(missing_ok=True)
-    print("[startup] Embeddings ready.")
+    try:
+        with requests.get(zip_url, stream=True, timeout=600) as r:
+            r.raise_for_status()
+            with open(tmp_zip, "wb") as f:
+                for chunk in r.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        f.write(chunk)
+        print("[startup] Unzipping embeddings ...")
+        with zipfile.ZipFile(tmp_zip, "r") as zf:
+            zf.extractall(APP_DIR)
+        print("[startup] Embeddings ready.")
+    finally:
+        tmp_zip.unlink(missing_ok=True)
 
 # ---------- Models ----------
 class AgentInput(BaseModel):
@@ -93,10 +95,10 @@ app.add_middleware(
 # ---------- Startup warmup ----------
 @app.on_event("startup")
 async def _startup():
-    # 1) make sure embeddings exist (download if needed)
-    _ensure_embeddings()
+    # Run embeddings fetch in background so startup doesn't block
+    asyncio.get_event_loop().run_in_executor(None, _ensure_embeddings)
 
-    # 2) warmups (optional)
+    # warmups (optional; best effort)
     try:
         warmup_all()
     except Exception as e:
