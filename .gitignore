@@ -1,0 +1,28 @@
+# Ignore data PDFs (optional)
+app/data/
+
+# Ignore embeddings (we'll fetch from S3 at startup)
+app/embeddings_gs/
+app/embeddings_icr/
+app/embeddings_vcs/
+app/embeddings_plan_vivo/
+app/embeddings_other_documents/
+app/**/chroma.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local env + venv
+.env
+venv/
+.venv/
+.env/
+.envrc/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS junk
+.DS_Store
+Thumbs.db

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flora Carbon GPT</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --emerald-50:#ecfdf5;
+      --emerald-100:#d1fae5;
+      --emerald-200:#a7f3d0;
+      --emerald-300:#6ee7b7;
+      --emerald-400:#34d399;
+      --emerald-500:#10b981; /* primary */
+      --emerald-600:#059669;
+      --emerald-700:#047857;
+      --emerald-800:#065f46;
+      --emerald-900:#064e3b;
+
+      --bg-0:#030c0a;        /* deep black-green */
+      --bg-1:#071511;        /* panel bg */
+      --text:#e8fff5;        /* subtle minted white */
+      --muted:#a8e5cf;
+      --glow: 0 0 22px rgba(16,185,129,.45), 0 0 60px rgba(16,185,129,.15);
+
+      --radius-xl:22px;
+      --radius-lg:16px;
+      --radius-md:12px;
+
+      --shadow-deep: 0 25px 70px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+      --glass: rgba(15,37,31,.55);
+      --glass-strong: rgba(10,24,20,.72);
+
+      --speed-1: 220ms;
+      --speed-2: 420ms;
+      --speed-3: 800ms;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: "Outfit", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% -10%, rgba(16,185,129,.18), transparent 60%),
+                  radial-gradient(1000px 600px at 120% 10%, rgba(6,95,70,.35), transparent 65%),
+                  radial-gradient(600px 400px at 80% 120%, rgba(20,83,45,.55), transparent 60%),
+                  var(--bg-0);
+      overflow:hidden;
+    }
+
+    canvas#particles{
+      position:fixed; inset:0; z-index:0; pointer-events:none; filter:blur(.4px) contrast(110%);
+      opacity:.6;
+    }
+    .gradient-sweep{
+      position:fixed; inset:-30%;
+      background: conic-gradient(from 60deg, rgba(16,185,129,.12), rgba(3,12,10,0) 28%, rgba(16,185,129,.1) 45%, rgba(3,12,10,0) 60%, rgba(16,185,129,.12));
+      animation: sweep 16s linear infinite;
+      z-index:0; filter: blur(60px);
+      mix-blend-mode: screen; opacity:.6;
+    }
+    @keyframes sweep{ to{ transform: rotate(360deg); } }
+
+    .container{
+      position:relative; z-index:1;
+      max-width:1100px; margin:0 auto; padding:28px 22px 24px;
+      height:100dvh; display:flex; flex-direction:column; gap:18px;
+    }
+
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      background: linear-gradient(180deg, rgba(20,52,44,.6), rgba(8,20,16,.6));
+      border:1px solid rgba(16,185,129,.25);
+      border-radius: var(--radius-xl);
+      padding: 16px 18px 16px 14px;
+      box-shadow: var(--shadow-deep);
+      backdrop-filter: blur(14px);
+      position:relative; overflow:hidden;
+    }
+    .header::after{
+      content:""; position:absolute; inset:0;
+      background: radial-gradient(600px 160px at -10% 0%, rgba(16,185,129,.18), transparent 40%),
+                  radial-gradient(360px 120px at 110% 120%, rgba(16,185,129,.08), transparent 60%);
+      mix-blend-mode: screen; pointer-events:none; animation: shimmer 9s ease-in-out infinite alternate;
+    }
+    @keyframes shimmer{
+      0%{ transform: translateX(-2%) translateY(0) }
+      100%{ transform: translateX(2%) translateY(-2%) }
+    }
+
+    .brand{ display:flex; align-items:center; gap:14px; padding-left:6px; }
+    .logo{ width:64px; height:64px; border-radius: 18px;
+      background:
+        radial-gradient(90px 90px at 40% 15%, rgba(16,185,129,.5), transparent 40%),
+        linear-gradient(145deg, #0f3a2f 5%, #0a1f1a 60%);
+      display:grid; place-items:center;
+      border:1px solid rgba(16,185,129,.35);
+      box-shadow: var(--glow), inset 0 0 30px rgba(16,185,129,.06);
+      position:relative; overflow:hidden; transform-style:preserve-3d;
+    }
+    .logo i{ width:36px; height:36px; border-radius:10px;
+      background: radial-gradient(60px 28px at 50% 10%, rgba(255,255,255,.18), transparent 45%),
+                  linear-gradient(180deg, var(--emerald-500), var(--emerald-700));
+      box-shadow: 0 10px 24px rgba(16,185,129,.35), inset 0 1px 0 rgba(255,255,255,.3);
+      transform: rotate(12deg);
+    }
+
+    .titles h1{
+      margin:0; font-weight: 800; letter-spacing:.3px;
+      font-size: clamp(22px, 1.6rem + .6vw, 34px);
+      line-height:1.05;
+      text-shadow: 0 0 28px rgba(16,185,129,.22);
+    }
+    .titles p{ margin:2px 0 0; opacity:.76; color:var(--muted); font-weight:500; letter-spacing:.2px; }
+
+    .chat{
+      flex:1; background: linear-gradient(180deg, rgba(8,20,16,.66), rgba(5,15,12,.66));
+      border:1px solid rgba(16,185,129,.22); border-radius: var(--radius-xl);
+      padding: 14px; box-shadow: var(--shadow-deep); backdrop-filter: blur(10px);
+      overflow-y:auto; scroll-behavior:smooth; position:relative;
+    }
+    .chat::-webkit-scrollbar{ width:10px }
+    .chat::-webkit-scrollbar-thumb{
+      background: linear-gradient(180deg, rgba(16,185,129,.5), rgba(6,95,70,.5));
+      border-radius:10px;
+    }
+
+    .msg{ max-width: 82%; padding: 12px 14px; border-radius: 16px; margin: 12px 10px;
+      line-height: 1.55; word-wrap: break-word; transform-origin: 0 100%;
+      animation: msgIn var(--speed-2) ease forwards;
+      transition: transform var(--speed-1) ease, box-shadow var(--speed-1) ease, background var(--speed-1) ease;
+    }
+    @keyframes msgIn{ from{ transform: translateY(8px) scale(.98); opacity:.0 } to{ transform: translateY(0) scale(1); opacity:1 } }
+    .msg:hover{ transform: translateY(-1px) scale(1.005) }
+    .user{ align-self: flex-end; background: linear-gradient(180deg, var(--emerald-600), var(--emerald-700)); color:#00150e; font-weight:700; box-shadow: 0 10px 30px rgba(16,185,129,.25) }
+    .bot{ align-self: flex-start; background: rgba(10,26,22,.8); border:1px solid rgba(16,185,129,.15); box-shadow: inset 0 0 0 1px rgba(255,255,255,.02) }
+
+    .loading{ align-self:flex-start; color:var(--emerald-300); font-style:italic; opacity:.85; margin: 8px 14px;
+      display:inline-flex; align-items:center; gap:8px; }
+    .dots span{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--emerald-400); margin:0 2px;
+      animation: bounce 1.2s infinite ease-in-out; }
+    .dots span:nth-child(2){ animation-delay:.15s }
+    .dots span:nth-child(3){ animation-delay:.3s }
+    @keyframes bounce{ 0%,80%,100%{ transform: translateY(0); opacity:.25 } 40%{ transform: translateY(-6px); opacity:1 } }
+
+    .section{ margin: 10px 12px 12px; background: rgba(8,22,18,.78);
+      border:1px solid rgba(16,185,129,.18); border-radius: 18px; overflow:hidden;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+      transition: transform var(--speed-1) ease, box-shadow var(--speed-1) ease; }
+    .section:hover{ transform: translateY(-1px); box-shadow: var(--glow) }
+    .sec-head{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding: 12px 14px; background: linear-gradient(180deg, rgba(16,40,34,.7), rgba(10,26,22,.5)); cursor:pointer; user-select:none; }
+    .sec-title{ font-weight:800; letter-spacing:.2px }
+    .sec-btn{ all:unset; cursor:pointer; padding:6px 12px; border-radius: 12px;
+      background: linear-gradient(180deg, var(--emerald-500), var(--emerald-700));
+      color:#03241b; font-weight:800; font-size:.9rem;
+      box-shadow: 0 10px 24px rgba(16,185,129,.28), inset 0 1px 0 rgba(255,255,255,.3);
+      transition: transform var(--speed-1) ease, box-shadow var(--speed-1) ease, filter var(--speed-1) ease; }
+    .sec-btn:hover{ transform: translateY(-1px) scale(1.02); filter: saturate(1.15) }
+    .sec-body{ display:grid; grid-template-rows: 0fr; transition: grid-template-rows var(--speed-2) ease; }
+    .sec-body.open{ grid-template-rows: 1fr }
+    .sec-content{ overflow:hidden; }
+    .evidence{ padding: 12px 14px 6px; display:grid; gap:10px; }
+    .card{ background: rgba(5,15,12,.75); border:1px solid rgba(16,185,129,.14);
+      border-radius: 14px; padding: 10px 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+      transition: transform var(--speed-1) ease, box-shadow var(--speed-1) ease; }
+    .card:hover{ transform: translateY(-1px); box-shadow: var(--glow) }
+    .meta{ font-size:.86rem; color:var(--emerald-200); opacity:.9; margin: 6px 2px 2px }
+
+    .composer{ display:grid; gap:12px; grid-template-columns: 1fr auto;
+      background: var(--glass-strong); border:1px solid rgba(16,185,129,.25);
+      border-radius: var(--radius-xl); padding: 12px; box-shadow: var(--shadow-deep); backdrop-filter: blur(12px); }
+    .controls{ display:grid; grid-template-columns: 1fr 220px; gap:10px; align-items:stretch; }
+    textarea, select{ background: rgba(5,15,12,.7); border:1px solid rgba(16,185,129,.22); color:var(--text);
+      border-radius: 14px; outline:none; padding: 12px 14px; transition: border var(--speed-1) ease, box-shadow var(--speed-1) ease, transform var(--speed-1) ease;
+      font-family: inherit; font-size: 1rem; }
+    textarea{ resize: vertical; min-height: 80px; max-height: 220px }
+    textarea:focus, select:focus{ border-color: var(--emerald-400); box-shadow: 0 0 0 3px rgba(16,185,129,.15), var(--glow); transform: translateY(-1px); }
+
+    .send{ all:unset; cursor:pointer; align-self:stretch;
+      background: radial-gradient(80px 30px at 50% 0%, rgba(255,255,255,.25), transparent 40%),
+        linear-gradient(180deg, var(--emerald-500), var(--emerald-700));
+      color:#03241b; font-weight:900; letter-spacing:.3px; font-size:1.05rem;
+      padding: 0 24px; border-radius: 14px; display:inline-flex; align-items:center; gap:10px;
+      box-shadow: 0 18px 34px rgba(16,185,129,.35), inset 0 1px 0 rgba(255,255,255,.38);
+      transition: transform var(--speed-1) ease, box-shadow var(--speed-1) ease, filter var(--speed-1) ease; }
+    .send:hover{ transform: translateY(-2px) scale(1.02); filter: saturate(1.15) }
+    .send:active{ transform: translateY(0) scale(.99) }
+    .send[disabled]{ background: linear-gradient(180deg, #0b3b2f, #08241d); color:#355c50; box-shadow:none; cursor:not-allowed }
+
+    .chip{ padding:.3rem .6rem; border-radius: 999px; font-size:.85rem; font-weight:800;
+      background: rgba(16,185,129,.15); color: var(--emerald-200);
+      border:1px solid rgba(16,185,129,.3); }
+
+    .floaties{ position:absolute; inset: -18px -18px auto auto; pointer-events:none; width: 240px; height: 120px; opacity:.6;
+      background: radial-gradient(60px 60px at 20% 30%, rgba(16,185,129,.25), transparent 50%),
+        radial-gradient(80px 40px at 70% 70%, rgba(16,185,129,.18), transparent 60%),
+        radial-gradient(60px 60px at 120% -10%, rgba(16,185,129,.2), transparent 60%);
+      filter: blur(18px); }
+
+    .msg.bot.md { line-height:1.65; }
+    .msg.bot.md h2, .msg.bot.md h3, .msg.bot.md h4 {
+      margin: 8px 0 6px; font-weight:800; letter-spacing:.2px;
+      color: var(--emerald-100); text-shadow: 0 0 20px rgba(16,185,129,.18);
+    }
+    .msg.bot.md h2 { font-size:1.25rem; }
+    .msg.bot.md h3 { font-size:1.1rem; }
+    .msg.bot.md p { margin: .35rem 0 .6rem; }
+    .msg.bot.md strong { color:#d5ffef; }
+    .msg.bot.md ul, .msg.bot.md ol { padding-left: 1.2rem; margin:.3rem 0 .6rem; }
+    .msg.bot.md li { margin: .25rem 0; }
+    .msg.bot.md code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.18);
+      padding: .1rem .35rem; border-radius: 6px;
+    }
+    .msg.bot.md table { width:100%; border-collapse: collapse; margin:.6rem 0;
+      background: rgba(5,15,12,.6); border:1px solid rgba(16,185,129,.18); border-radius:10px; overflow:hidden; }
+    .msg.bot.md th, .msg.bot.md td { border-bottom:1px solid rgba(16,185,129,.14); padding:.5rem .6rem; text-align:left; }
+    .msg.bot.md th { background: rgba(16,40,34,.5); color: var(--emerald-100); }
+    .msg.bot.md blockquote { margin:.5rem 0; padding:.4rem .8rem; border-left:3px solid var(--emerald-500);
+      background: rgba(16,185,129,.08); border-radius: 10px; }
+
+    .row{ display:flex; gap:10px; align-items:center; }
+    .hidden{ display:none; }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+  <div class="gradient-sweep"></div>
+
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <div id="logo-tilt" class="logo" aria-label="Flora Carbon GPT logo"><i></i></div>
+        <div class="titles">
+          <h1>Flora Carbon GPT</h1>
+          <p>Your intelligent climate companion powered by advanced AI</p>
+        </div>
+      </div>
+      <div class="row"></div>
+      <div class="floaties"></div>
+    </header>
+
+    <main class="chat" id="chat-window" aria-live="polite"></main>
+
+    <form class="composer" id="chat-form">
+      <div class="controls">
+        <textarea id="query-input" placeholder="Ask your question…" required></textarea>
+        <select id="standard-select" required title="Choose a standard">
+          <option value="" disabled selected>— Select a Standard —</option>
+          <option value="gs">Gold Standard (GS)</option>
+          <option value="vcs">Verra (VCS)</option>
+          <option value="icr">ICR</option>
+          <option value="plan_vivo">Plan Vivo</option>
+          <option value="other">Other / General</option>
+        </select>
+      </div>
+      <button class="send" id="submit-btn" type="submit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 11L20 4L13 21L11 13L3 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        Send
+      </button>
+    </form>
+  </div>
+
+  <!-- Markdown libs -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+
+  <script>
+    // API base = SAME ORIGIN (because we serve /ui and the API from same domain)
+    const API_BASE = window.location.origin;
+
+    /* ======= Animated particles ======= */
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let W, H, P=[];
+    function resize(){
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      P = Array.from({length: Math.floor((W*H)/38000)+20}, () => ({
+        x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.6+0.4,
+        vx:(Math.random()-.5)*0.2, vy:(Math.random()-.5)*0.2, a: Math.random()*Math.PI*2
+      }));
+    }
+    window.addEventListener('resize', resize); resize();
+    function tick(){
+      ctx.clearRect(0,0,W,H);
+      for(const p of P){
+        p.a += .002; p.x += p.vx + Math.cos(p.a)*.08; p.y += p.vy + Math.sin(p.a)*.08;
+        if(p.x<0) p.x=W; if(p.x>W) p.x=0; if(p.y<0) p.y=H; if(p.y>H) p.y=0;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fillStyle = `rgba(16,185,129,${0.15 + Math.abs(Math.sin(p.a))*0.35})`; ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+
+    /* ======= Tilt effect on logo (guarded) ======= */
+    const logo = document.getElementById('logo-tilt');
+    if (logo) {
+      logo.addEventListener('mousemove', (e)=>{
+        const r = logo.getBoundingClientRect();
+        const cx = r.left + r.width/2, cy = r.top + r.height/2;
+        const dx = (e.clientX - cx)/r.width, dy = (e.clientY - cy)/r.height;
+        logo.style.transform = `rotateX(${ -dy*10 }deg) rotateY(${ dx*12 }deg) scale(1.02)`;
+      });
+      logo.addEventListener('mouseleave', ()=>{ logo.style.transform = 'rotateX(0) rotateY(0) scale(1)'; });
+    }
+
+    /* ======= Chat logic ======= */
+    const chatForm = document.getElementById('chat-form');
+    const queryInput = document.getElementById('query-input');
+    const standardSelect = document.getElementById('standard-select');
+    const submitBtn = document.getElementById('submit-btn');
+    const chatWindow = document.getElementById('chat-window');
+
+    function renderMarkdown(mdText){
+      try {
+        const html = marked.parse(mdText ?? "");
+        return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+      } catch (e) {
+        console.error("Markdown render failed:", e);
+        const div = document.createElement('div');
+        div.textContent = mdText ?? "";
+        return div.innerHTML;
+      }
+    }
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = queryInput.value.trim();
+      const standard = standardSelect.value;
+      if (!query || !standard) return;
+
+      addMessage(query, 'user');
+      queryInput.value = '';
+
+      const loading = addLoading();
+      submitBtn.setAttribute('disabled', 'true');
+
+      try {
+        const response = await fetch(`${API_BASE}/carbon-agent/invoke`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            input: { query: query, selected_standard: standard }
+          })
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        removeLoading(loading);
+
+        const evidence = result?.output?.evidence || [];
+        if (Array.isArray(evidence) && evidence.length > 0) {
+          chatWindow.appendChild(renderEvidenceSection('Evidence (authoritative)', evidence));
+          chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        const examples = result?.output?.project_examples || [];
+        if (Array.isArray(examples) && examples.length > 0) {
+          chatWindow.appendChild(renderEvidenceSection('Project examples', examples));
+          chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        const answer = result?.output?.answer || result?.output?.error || 'Sorry, something went wrong.';
+        addMessage(answer, 'bot', true); // render as Markdown
+
+      } catch (err) {
+        console.error(err);
+        removeLoading(loading);
+        addMessage('Failed to connect to the agent. Please ensure the server is running.', 'bot');
+      } finally {
+        submitBtn.removeAttribute('disabled');
+      }
+    });
+
+    function renderEvidenceSection(title, items) {
+      const wrapper = document.createElement('div'); wrapper.className = 'section';
+      const head = document.createElement('div'); head.className = 'sec-head';
+      const titleEl = document.createElement('div'); titleEl.className = 'sec-title'; titleEl.textContent = title;
+      const btn = document.createElement('button'); btn.className = 'sec-btn'; btn.textContent = `Show (${items.length})`;
+
+      const body = document.createElement('div'); body.className = 'sec-body';
+      const content = document.createElement('div'); content.className = 'sec-content';
+      const list = document.createElement('div'); list.className = 'evidence';
+
+      items.forEach((e) => {
+        const card = document.createElement('div'); card.className = 'card'; card.innerText = e.quote;
+        const meta = document.createElement('div'); meta.className = 'meta';
+        const hasClause = e.clause && String(e.clause).trim().toUpperCase() !== 'N/A';
+        const metaText = `Source: ${e.source}` + (hasClause ? `  •  Clause: ${e.clause}` : '') +
+                         `  •  Page: ${e.page}  •  Score: ${Number(e.score).toFixed(3)}` +
+                         (e.doc_type ? `  •  Type: ${e.doc_type}` : '');
+        meta.innerText = metaText; list.appendChild(card); list.appendChild(meta);
+      });
+
+      function toggleSection(){ const isOpen = body.classList.toggle('open'); btn.textContent = (isOpen ? 'Hide' : 'Show') + ` (${items.length})`; }
+      head.addEventListener('click', () => toggleSection());
+      btn.addEventListener('click', (ev) => { ev.stopPropagation(); toggleSection(); });
+
+      content.appendChild(list); body.appendChild(content);
+      head.appendChild(titleEl); head.appendChild(btn);
+      wrapper.appendChild(head); wrapper.appendChild(body);
+      return wrapper;
+    }
+
+    function addMessage(text, who='bot', isMarkdown=false){
+      const el = document.createElement('div');
+      el.className = `msg ${who === 'user' ? 'user' : 'bot'}${isMarkdown && who==='bot' ? ' md' : ''}`;
+      el[isMarkdown && who === 'bot' ? 'innerHTML' : 'textContent'] = isMarkdown ? renderMarkdown(text) : text;
+      chatWindow.appendChild(el); chatWindow.scrollTop = chatWindow.scrollHeight; return el;
+    }
+    function addLoading(){
+      const wrap = document.createElement('div'); wrap.className = 'loading';
+      wrap.innerHTML = `<span>Thinking</span> <span class="dots"><span></span><span></span><span></span></span>`;
+      chatWindow.appendChild(wrap); chatWindow.scrollTop = chatWindow.scrollHeight; return wrap;
+    }
+    function removeLoading(node){ if(node && node.parentNode){ node.parentNode.removeChild(node) } }
+
+    // Optional: warm the API once the page is ready
+    window.addEventListener('load', () => {
+      fetch(`${API_BASE}/carbon-agent/invoke`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ input: { query: 'warmup', selected_standard: 'other' } })
+      }).catch(() => {/* ignore warmup errors */});
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+﻿__pycache__/
+*.py[cod]
+.venv/
+venv/
+.git/
+.gitignore
+*.log
+.ipynb_checkpoints/
+.env
+# DO NOT ignore embedded vector DBs:
+# app/**/chroma.sqlite3  (removed)
+# app/**/index/*         (removed)
