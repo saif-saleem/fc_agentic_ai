@@ -1,4 +1,4 @@
-﻿# ---------- Base ----------
+# ---------- Base ----------
 FROM python:3.11-slim
 
 # system deps (uvicorn speedups, build tools)

@@ -1,4 +1,4 @@
-﻿# app/utils.py
+# app/utils.py
 import os
 from typing import List, Dict, Any, Optional
 
