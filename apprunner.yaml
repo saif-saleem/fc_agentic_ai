@@ -1,0 +1,38 @@
+# apprunner.yaml
+# Configuration file for AWS App Runner
+
+version: 1.0
+
+# Build settings: Instructions for how to build your container image.
+build:
+  builder: dockerfile
+  # Specifies the path to your Dockerfile.
+  dockerfile: Dockerfile
+  # These are the crucial build-time environment variables.
+  build-args:
+    EMBEDDINGS_ZIP_URL: "https://flora-agentiai-embeddings.s3.us-east-1.amazonaws.com/embeddings_bundle.zip"
+
+# Run settings: Instructions for how to run your application.
+run:
+  # The command to start your application.
+  command: python3 server.py
+  # The port your application listens on.
+  port: 8000
+  # CPU and Memory allocation.
+  cpu: 1024         # 1 vCPU
+  memory: 2048      # 2 GB
+  # These are the runtime environment variables your application needs.
+  environment-variables:
+    OPENAI_API_KEY: !secret carbon-agent_openai_key
+    MODEL_NAME: "gpt-4.1"
+    EMBEDDING_MODEL: "text-embedding-ada-002"
+    ALLOW_ORIGINS: "*"
+
+# Health check settings to give your app enough time to start.
+health-check:
+  protocol: http
+  path: /health
+  interval: 30      # Seconds between checks
+  timeout: 60       # Seconds to wait for a response
+  healthy-threshold: 1
+  unhealthy-threshold: 5
