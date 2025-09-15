@@ -103,9 +103,12 @@ app.add_middleware(
 # ---------- Startup warmup ----------
 @app.on_event("startup")
 async def _startup():
-    # The embedding download is now handled in the Dockerfile to speed up startup.
-    # The line below is disabled.
-    # asyncio.get_event_loop().run_in_executor(None, _ensure_embeddings)
+    # Ensure embeddings are present (fallback if build-time step failed)
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _ensure_embeddings)
+    except Exception as e:
+        print(f"[startup] _ensure_embeddings failed: {e}")
 
     # warmups (optional; best effort)
     try:
@@ -206,4 +209,4 @@ def ui():
 # ---------- Local run ----------
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8080")))

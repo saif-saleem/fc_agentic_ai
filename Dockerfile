@@ -35,8 +35,9 @@ COPY . /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# FastAPI listens on 0.0.0.0:8000
-EXPOSE 8000
+# Container को env से port मिलेगा
+# Container को env से port मिलेगा
+ENV PORT=8080
 
-# Start server (your entrypoint.sh is not used by this Dockerfile, which is fine)
-CMD ["python", "server.py"]
+EXPOSE 8080
+CMD ["python3", "server.py"]

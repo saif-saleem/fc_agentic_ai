@@ -6,7 +6,7 @@ build:
         EMBEDDINGS_ZIP_URL: "https://flora-agentiai-embeddings.s3.us-east-1.amazonaws.com/embeddings_bundle.zip"
 run:
     command: python3 server.py
-    port: 8000
+    port: 8080
     cpu: 1024
     memory: 3072
     environment-variables:
