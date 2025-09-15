@@ -10,7 +10,7 @@ run:
   cpu: 1024
   memory: 3072
   environment-variables:
-    OPENAI_API_KEY: !secret carbon-agent_openai_key
+    OPENAI_API_KEY: !secret arn:aws:secretsmanager:us-east-1:481665097957:secret:carbon-agent_openai_key-DdUmHA
     MODEL_NAME: "gpt-4.1"
     EMBEDDING_MODEL: "text-embedding-ada-002"
     ALLOW_ORIGINS: "*"
