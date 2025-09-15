@@ -1,23 +1,23 @@
 version: 1.0
 build:
-  builder: dockerfile
-  dockerfile: Dockerfile
-  build-args:
-    EMBEDDINGS_ZIP_URL: "https://flora-agentiai-embeddings.s3.us-east-1.amazonaws.com/embeddings_bundle.zip"
+    builder: dockerfile
+    dockerfile: Dockerfile
+    build-args:
+        EMBEDDINGS_ZIP_URL: "https://flora-agentiai-embeddings.s3.us-east-1.amazonaws.com/embeddings_bundle.zip"
 run:
-  command: python3 server.py
-  port: 8000
-  cpu: 1024
-  memory: 3072
-  environment-variables:
-    OPENAI_API_KEY: !secret arn:aws:secretsmanager:us-east-1:481665097957:secret:carbon-agent_openai_key-DdUmHA
-    MODEL_NAME: "gpt-4.1"
-    EMBEDDING_MODEL: "text-embedding-ada-002"
-    ALLOW_ORIGINS: "*"
+    command: python3 server.py
+    port: 8000
+    cpu: 1024
+    memory: 3072
+    environment-variables:
+        OPENAI_API_KEY: !secret arn:aws:secretsmanager:us-east-1:481665097957:secret:carbon-agent_openai_key-DdUmHA
+        MODEL_NAME: "gpt-4.1"
+        EMBEDDING_MODEL: "text-embedding-ada-002"
+        ALLOW_ORIGINS: "*"
 health-check:
-  protocol: http
-  path: /health
-  interval: 30
-  timeout: 60
-  healthy-threshold: 1
-  unhealthy-threshold: 5
+    protocol: http
+    path: /health
+    interval: 30
+    timeout: 60
+    healthy-threshold: 1
+    unhealthy-threshold: 5
