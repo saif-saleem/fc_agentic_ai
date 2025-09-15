@@ -10,7 +10,7 @@ run:
   cpu: 1024
   memory: 3072
   environment-variables:
-    OPENAI_API_KEY: !secret AppRunnerSecretsAccessRole
+    OPENAI_API_KEY: !secret carbon-agent_openai_key
     MODEL_NAME: "gpt-4.1"
     EMBEDDING_MODEL: "text-embedding-ada-002"
     ALLOW_ORIGINS: "*"
