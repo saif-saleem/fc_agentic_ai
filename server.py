@@ -15,6 +15,7 @@ from langserve import add_routes
 from app.agent import agent_app, _responses_call
 from app.utils import warmup_all
 
+
 APP_DIR = Path(__file__).parent / "app"      # /app/app in container
 EMB_TARGETS = [
     APP_DIR / "embeddings_gs" / "chroma.sqlite3",
@@ -23,6 +24,7 @@ EMB_TARGETS = [
     APP_DIR / "embeddings_plan_vivo" / "chroma.sqlite3",
     APP_DIR / "embeddings_other_documents" / "chroma.sqlite3",
 ]
+
 
 def _ensure_embeddings():
     """
@@ -57,19 +59,23 @@ def _ensure_embeddings():
     finally:
         tmp_zip.unlink(missing_ok=True)
 
+
 # ---------- Models ----------
 class AgentInput(BaseModel):
     query: str
     selected_standard: str  # "gs" | "vcs" | "icr" | "plan_vivo" | "other"
+
 
 class AgentOutput(BaseModel):
     answer: str
     evidence: list[dict] = []
     project_examples: list[dict] = []
 
+
 class AskBody(BaseModel):
     query: str
     standard: str
+
 
 # ---------- App ----------
 app = FastAPI(
@@ -77,6 +83,7 @@ app = FastAPI(
     version="1.4",
     description="Strict RAG agent for carbon credit standards with weighted retrieval and project examples.",
 )
+
 
 # ---------- CORS ----------
 allow_origins_env = os.getenv("ALLOW_ORIGINS", "*")
@@ -92,11 +99,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ---------- Startup warmup ----------
 @app.on_event("startup")
 async def _startup():
-    # Run embeddings fetch in background so startup doesn't block
-    asyncio.get_event_loop().run_in_executor(None, _ensure_embeddings)
+    # The embedding download is now handled in the Dockerfile to speed up startup.
+    # The line below is disabled.
+    # asyncio.get_event_loop().run_in_executor(None, _ensure_embeddings)
 
     # warmups (optional; best effort)
     try:
@@ -109,6 +118,7 @@ async def _startup():
     except Exception as e:
         print(f"[startup] Model warmup ping failed: {e}")
 
+
 # ---------- Basic endpoints ----------
 @app.get("/")
 def root():
@@ -119,9 +129,11 @@ def root():
         "routes": ["/health", "/ask", "/carbon-agent/invoke", "/carbon-agent/playground/", "/ui"],
     }
 
+
 @app.get("/health")
 def health():
     return {"ok": True}
+
 
 # ---------- LangServe route ----------
 def _in_adapter(inp: Any) -> Dict[str, Any]:
@@ -135,6 +147,7 @@ def _in_adapter(inp: Any) -> Dict[str, Any]:
         raise ValueError("Both 'query' and 'selected_standard' must be strings.")
     return {"query": q, "selected_standard": std}
 
+
 def _out_adapter(out: Any) -> AgentOutput:
     if isinstance(out, dict):
         return AgentOutput(
@@ -143,6 +156,7 @@ def _out_adapter(out: Any) -> AgentOutput:
             project_examples=out.get("project_examples", []) or [],
         )
     return AgentOutput(answer=str(out), evidence=[], project_examples=[])
+
 
 try:
     add_routes(
@@ -165,6 +179,7 @@ except TypeError:
         in_adapter=_in_adapter,
     )
 
+
 # ---------- Simple REST endpoint (bypass playground) ----------
 @app.post("/ask")
 def ask(body: AskBody, x_api_key: Optional[str] = Header(default=None)):
@@ -177,6 +192,7 @@ def ask(body: AskBody, x_api_key: Optional[str] = Header(default=None)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # ---------- Serve the UI (index.html) ----------
 from fastapi.responses import HTMLResponse
 @app.get("/ui", response_class=HTMLResponse)
@@ -185,6 +201,7 @@ def ui():
     if not index_path.exists():
         return HTMLResponse("<h1>UI not found</h1>", status_code=404)
     return HTMLResponse(index_path.read_text(encoding="utf-8"))
+
 
 # ---------- Local run ----------
 if __name__ == "__main__":
