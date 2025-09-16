@@ -8,11 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# --- New Part: Add an argument for your S3 URL ---
+# Add an argument for your S3 URL
 ARG EMBEDDINGS_ZIP_URL
 
-# --- New Part: Download and unzip embeddings during the build ---
-# This runs only when the image is built, not when the container starts.
+# Download and unzip embeddings during the build
 RUN if [ -n "$EMBEDDINGS_ZIP_URL" ]; then \
       echo "Downloading embeddings from $EMBEDDINGS_ZIP_URL..."; \
       curl -L "$EMBEDDINGS_ZIP_URL" -o /tmp/embeddings_bundle.zip && \
@@ -35,9 +34,5 @@ COPY . /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Container को env से port मिलेगा
-# Container को env से port मिलेगा
-ENV PORT=8080
-
-EXPOSE 8080
+# Start server
 CMD ["python3", "server.py"]
