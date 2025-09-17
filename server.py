@@ -5,6 +5,7 @@ from pathlib import Path
 import zipfile
 import requests
 import asyncio
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +13,7 @@ from pydantic import BaseModel
 from langserve import add_routes
 
 # ----- Try importing your app pieces (these require embeddings later) -----
-from app.agent import agent_app, _responses_call
+from app.agent import agent_app, _llm_call
 from app.utils import warmup_all
 
 
@@ -77,11 +78,42 @@ class AskBody(BaseModel):
     standard: str
 
 
+# ---------- Lifespan Events ----------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("[startup] Starting Carbon GPT Agent Server...")
+    
+    # Ensure embeddings are present (fallback if build-time step failed)
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _ensure_embeddings)
+    except Exception as e:
+        print(f"[startup] _ensure_embeddings failed: {e}")
+
+    # warmups (optional; best effort)
+    try:
+        warmup_all()
+    except Exception as e:
+        print(f"[startup] warmup_all failed: {e}")
+    try:
+        _llm_call("Warmup ping")
+        print("[startup] Model warmup ping OK.")
+    except Exception as e:
+        print(f"[startup] Model warmup ping failed: {e}")
+    
+    print("[startup] Carbon GPT Agent Server started successfully!")
+    yield
+    # Shutdown
+    print("[shutdown] Carbon GPT Agent Server shutting down...")
+
+
 # ---------- App ----------
 app = FastAPI(
     title="Carbon GPT Agent Server",
     version="1.4",
     description="Strict RAG agent for carbon credit standards with weighted retrieval and project examples.",
+    lifespan=lifespan,
 )
 
 
@@ -98,28 +130,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
-
-
-# ---------- Startup warmup ----------
-@app.on_event("startup")
-async def _startup():
-    # Ensure embeddings are present (fallback if build-time step failed)
-    try:
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, _ensure_embeddings)
-    except Exception as e:
-        print(f"[startup] _ensure_embeddings failed: {e}")
-
-    # warmups (optional; best effort)
-    try:
-        warmup_all()
-    except Exception as e:
-        print(f"[startup] warmup_all failed: {e}")
-    try:
-        _responses_call("Warmup ping")
-        print("[startup] Model warmup ping OK.")
-    except Exception as e:
-        print(f"[startup] Model warmup ping failed: {e}")
 
 
 # ---------- Basic endpoints ----------
@@ -161,7 +171,9 @@ def _out_adapter(out: Any) -> AgentOutput:
     return AgentOutput(answer=str(out), evidence=[], project_examples=[])
 
 
+# Add langserve routes with proper adapters
 try:
+    # Try with modern parameter names
     add_routes(
         app,
         agent_app,
@@ -169,18 +181,33 @@ try:
         input_type=AgentInput,
         output_type=AgentOutput,
         config_keys=["configurable"],
-        in_adapter=_in_adapter,
-        out_adapter=_out_adapter,
+        input_adapter=_in_adapter,
+        output_adapter=_out_adapter,
     )
-except TypeError:
-    add_routes(
-        app,
-        agent_app,
-        path="/carbon-agent",
-        input_type=AgentInput,
-        config_keys=["configurable"],
-        in_adapter=_in_adapter,
-    )
+except TypeError as e:
+    print(f"First add_routes attempt failed: {e}")
+    try:
+        # Try with legacy parameter names
+        add_routes(
+            app,
+            agent_app,
+            path="/carbon-agent",
+            input_type=AgentInput,
+            output_type=AgentOutput,
+            config_keys=["configurable"],
+            in_adapter=_in_adapter,
+            out_adapter=_out_adapter,
+        )
+    except TypeError as e2:
+        print(f"Second add_routes attempt failed: {e2}")
+        # Fallback without adapters
+        add_routes(
+            app,
+            agent_app,
+            path="/carbon-agent",
+            input_type=AgentInput,
+            output_type=AgentOutput,
+        )
 
 
 # ---------- Simple REST endpoint (bypass playground) ----------
